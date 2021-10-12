@@ -4,45 +4,73 @@
 namespace Core;
 
 
-use App\Controllers\HomeController;
-use Core\Interfaces\RouterInterface;
+use Core\Interfaces\ContainerInterface;
 use Core\Interfaces\RunnableInterface;
 
-class Application implements RunnableInterface
+class Application implements RunnableInterface, ContainerInterface
 {
-    protected $router;
+    protected $components = [];
 
     protected $config;
 
-    public function __construct(RouterInterface $router, $config)
+    protected static $instance;
+
+    public static function getInstance($config = [])
     {
-        $this->router = $router;
+        if (self::$instance === null) {
+            self::$instance = new self($config);
+        }
+
+        return self::$instance;
+    }
+
+    protected function __construct($config)
+    {
         $this->config = $config;
     }
 
-    /*public function __construct($config = [])
+    protected function bootstrap()
     {
-        $this->config = $config;
-
-        if (isset($config['components'])) {
-            foreach ($config['components'] as $key => $item) {
-                if (isset($item['class']) && class_exists($item['class'])) {
-                    $instance = new $item['class']();
-                    if (property_exists($this, $key)) {
-                        $this->{$key} = $instance;
-                    }
-                }
-            }
+        foreach ($this->config['components'] as $name => $item) {
+            $factoryClass = $item['factory'];
+            /** @var FactoryAbstract $factory */
+            $factory = new $factoryClass();
+            $instance = $factory->createComponent();
+            //$this->conmponents[$name] = $instance;
+            $this->set($name, $instance);
         }
-    }*/
+    }
 
     public function run()
     {
-        $action = $this->router->route();
+        $this->bootstrap();
+
+        $router = $this->get('router');
+        $action = $router->route();
         $action();
-        /*if ($_SERVER['REQUEST_URI'] === '/') {
-            $controller = new HomeController();
-            $controller->index();
-        }*/
+    }
+
+    public function getConfig()
+    {
+        return $this->config;
+    }
+
+    public function get($name)
+    {
+        if (isset($this->components[$name])) {
+            return $this->components[$name];
+        }
+
+        throw new \Exception('Can not get service with name' . $name);
+    }
+
+    public function set($name, $service)
+    {
+        $this->components[$name] = $service;
+    }
+
+    public function has($name): bool
+    {
+        return isset($this->components[$name]);
     }
 }
