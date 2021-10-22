@@ -47,7 +47,21 @@ class Application implements RunnableInterface, ContainerInterface
 
         $router = $this->get('router');
         $action = $router->route();
-        $action();
+        //$action();
+        $this->callAction($action);
+    }
+
+    protected function callAction(callable $action)
+    {
+        $reflectionMethod = new \ReflectionMethod($action[0], $action[1]);
+        $parameters = [];
+        foreach ($reflectionMethod->getParameters() as $parameter) {
+            $name = $parameter->getName();
+            if (isset($_GET[$name])) {
+                $parameters[$name] = $_GET[$name];
+            }
+        }
+        return $reflectionMethod->invokeArgs($action[0], $parameters);
     }
 
     public function getConfig()

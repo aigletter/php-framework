@@ -11,15 +11,26 @@ class Router implements RouterInterface
 {
     public function route(): callable
     {
-        // TEMP
-        // TODO сделать реализацию
-        /*return function () {
-            echo 'Router is running';
-        };*/
+        $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        $parts = explode('/', $path);
+
+        if (!empty($parts[1])) {
+            $controllerName = 'App\\Controllers\\' . ucfirst($parts[1]);
+        } else {
+            $controllerName = 'App\\Controllers\\HomeController';
+        }
+
+        $methodName = $parts[2] ?? 'index';
+
+        if (!class_exists($controllerName)) {
+            throw new \Exception('Not found');
+        }
+
+        $controller = new $controllerName();
 
         return [
-            new HomeController(),
-            'index'
+            $controller,
+            $methodName
         ];
     }
 }

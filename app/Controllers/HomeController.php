@@ -18,7 +18,7 @@ class HomeController
 
     public function index()
     {
-        echo $this->cache->get('cache')->get('string');
+        echo $this->cache->get('string');
 
         echo Application::getInstance()->get('test')->run();
     }
