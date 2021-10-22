@@ -1,11 +1,16 @@
 <?php
 
-
 namespace Core\Components\Cache;
 
 
 use Psr\SimpleCache\CacheInterface;
 
+/**
+ * Class Cache
+ * @package Core\Components\Cache
+ *
+ * @link https://www.php-fig.org/psr/psr-16/
+ */
 class Cache implements CacheInterface
 {
     //protected const FILE_NAME = 'data/cache/cache.json';
@@ -17,6 +22,11 @@ class Cache implements CacheInterface
         $this->filename = $filename;
     }
 
+    /**
+     * @param string $key
+     * @param mixed|null $default
+     * @return mixed|null
+     */
     public function get($key, $default = null)
     {
         $filename = $_SERVER['DOCUMENT_ROOT'] . '/../' . $this->filename;

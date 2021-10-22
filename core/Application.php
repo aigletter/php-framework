@@ -1,59 +1,108 @@
 <?php
+/**
+ * @version 1.0
+ */
 
 
 namespace Core;
 
 
 use Core\Interfaces\ContainerInterface;
+use Core\Interfaces\RouterInterface;
 use Core\Interfaces\RunnableInterface;
 
+
+/**
+ * Класс приложения, запускаемого с публичной директории
+ *
+ * В index.php нужно создать экземпляр...
+ * После вызвать то-се...
+ *
+ * @author Yurii Orlyk <aigletter@gmail.com>
+ */
 class Application implements RunnableInterface, ContainerInterface
 {
+    /**
+     * Массив компонентов
+     * @var array
+     */
     protected $components = [];
 
+    /**
+     * @var array
+     */
     protected $config;
 
+    /**
+     * @var Application
+     */
     protected static $instance;
 
-    public static function getInstance($config = [])
+    /**
+     * Метод синглтона, возвращает экземпляр класса
+     * @param array $config
+     * @return Application
+     */
+    public static function getInstance()
     {
         if (self::$instance === null) {
-            self::$instance = new self($config);
+            self::$instance = new self();
         }
 
         return self::$instance;
     }
 
-    protected function __construct($config)
+    /**
+     * Application constructor.
+     * @param array $config
+     */
+    protected function __construct()
     {
-        $this->config = $config;
+        //$this->config = $config;
     }
 
-    protected function bootstrap()
+    /**
+     * @todo Доделать проверку класса и отрефакторить
+     */
+    public function configure(array $config = [])
     {
+        $this->config = $config;
         foreach ($this->config['components'] as $name => $item) {
             $factoryClass = $item['factory'];
             /** @var FactoryAbstract $factory */
-            $factory = new $factoryClass();
+            $factory = new $factoryClass($item);
             $instance = $factory->createComponent();
             //$this->conmponents[$name] = $instance;
             $this->set($name, $instance);
         }
     }
 
+    /**
+     * Запускает роутинг и вызывает метод контроллера
+     * @return void
+     * @throws \Exception
+     */
     public function run()
     {
-        $this->bootstrap();
-
-        $router = $this->get('router');
+        $router = $this->getRouter();
         $action = $router->route();
         //$action();
         $this->callAction($action);
     }
 
+    /**
+     * @param callable $action
+     * @return mixed
+     * @throws \ReflectionException
+     */
     protected function callAction(callable $action)
     {
-        $reflectionMethod = new \ReflectionMethod($action[0], $action[1]);
+        if ($action instanceof \Closure) {
+            $reflectionMethod = new \ReflectionFunction($action);
+        } else {
+            $reflectionMethod = new \ReflectionMethod($action[0], $action[1]);
+        }
+
         $parameters = [];
         foreach ($reflectionMethod->getParameters() as $parameter) {
             $name = $parameter->getName();
@@ -61,14 +110,27 @@ class Application implements RunnableInterface, ContainerInterface
                 $parameters[$name] = $_GET[$name];
             }
         }
-        return $reflectionMethod->invokeArgs($action[0], $parameters);
+
+        if ($action instanceof \Closure) {
+            return $reflectionMethod->invokeArgs($parameters);
+        } else {
+            return $reflectionMethod->invokeArgs($action[0], $parameters);
+        }
     }
 
+    /**
+     * @return array
+     */
     public function getConfig()
     {
         return $this->config;
     }
 
+    /**
+     * @param $name
+     * @return mixed
+     * @throws \Exception
+     */
     public function get($name)
     {
         if (isset($this->components[$name])) {
@@ -78,13 +140,31 @@ class Application implements RunnableInterface, ContainerInterface
         throw new \Exception('Can not get service with name' . $name);
     }
 
+    /**
+     * @param $name
+     * @param $service
+     */
     public function set($name, $service)
     {
         $this->components[$name] = $service;
     }
 
+    /**
+     * @param $name
+     * @return bool
+     */
     public function has($name): bool
     {
         return isset($this->components[$name]);
+    }
+
+    /**
+     * @return RouterInterface
+     * @throws \Exception
+     * @deprecated
+     */
+    public function getRouter()
+    {
+        return $this->get('router');
     }
 }

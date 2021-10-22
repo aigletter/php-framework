@@ -8,6 +8,7 @@ include '../vendor/autoload.php';
 
 $config = include '../config/main.php';
 //$app = new Application($config);
-$app = Application::getInstance($config);
+$app = Application::getInstance();
+$app->configure($config);
 
 $app->run();

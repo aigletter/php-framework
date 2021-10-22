@@ -5,6 +5,12 @@ return [
     'components' => [
         'router' => [
             'factory' => \Core\Components\Router\RouterFactory::class,
+            /*'factory' => \App\Components\Router\RouterFactory::class,
+            'able_path' => ['Auth'  => ['login', 'logout', 'registration'],
+                'News'  => ['show', 'create', 'edit'],
+                'Order' => ['create', 'update'],
+                'homeController' => ['index']
+            ]*/
         ],
         'cache' => [
             'factory' => \Core\Components\Cache\CacheFactory::class,
