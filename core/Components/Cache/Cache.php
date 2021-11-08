@@ -3,6 +3,7 @@
 namespace Core\Components\Cache;
 
 
+use Core\Components\Test\Test;
 use Psr\SimpleCache\CacheInterface;
 
 /**
@@ -17,7 +18,7 @@ class Cache implements CacheInterface
 
     protected $filename;
 
-    public function __construct($filename)
+    public function __construct($filename, Test $test)
     {
         $this->filename = $filename;
     }

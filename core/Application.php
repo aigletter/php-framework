@@ -22,6 +22,8 @@ use Core\Interfaces\RunnableInterface;
  */
 class Application implements RunnableInterface, ContainerInterface
 {
+    protected $bingings = [];
+
     /**
      * Массив компонентов
      * @var array
@@ -69,11 +71,11 @@ class Application implements RunnableInterface, ContainerInterface
         $this->config = $config;
         foreach ($this->config['components'] as $name => $item) {
             $factoryClass = $item['factory'];
-            /** @var FactoryAbstract $factory */
-            $factory = new $factoryClass($item);
-            $instance = $factory->createComponent();
-            //$this->conmponents[$name] = $instance;
-            $this->set($name, $instance);
+            unset($item['factory']);
+            $this->bingings[$name] = [
+                'factory' => $factoryClass,
+                'params' => $item
+            ];
         }
     }
 
@@ -103,19 +105,37 @@ class Application implements RunnableInterface, ContainerInterface
             $reflectionMethod = new \ReflectionMethod($action[0], $action[1]);
         }
 
-        $parameters = [];
+        $arguments = [];
         foreach ($reflectionMethod->getParameters() as $parameter) {
             $name = $parameter->getName();
-            if (isset($_GET[$name])) {
-                $parameters[$name] = $_GET[$name];
+            if ($classObject = $parameter->getClass() and $className = $classObject->getName()) {
+                $arguments[$name] = $this->get($className);
+            } elseif (isset($_GET[$name])) {
+                $arguments[$name] = $_GET[$name];
             }
         }
 
         if ($action instanceof \Closure) {
-            return $reflectionMethod->invokeArgs($parameters);
+            return $reflectionMethod->invokeArgs($arguments);
         } else {
-            return $reflectionMethod->invokeArgs($action[0], $parameters);
+            return $reflectionMethod->invokeArgs($action[0], $arguments);
         }
+    }
+
+    public function resolveDependencies($className)
+    {
+        $reflectionClass = new \ReflectionClass($className);
+        $constructor = $reflectionClass->getConstructor();
+        $arguments = [];
+        if ($constructor) {
+            foreach ($constructor->getParameters() as $parameter) {
+                $name = $parameter->getName();
+                $class = $parameter->getClass()->getName();
+                $arguments[$name] = $this->get($class);
+            }
+        }
+
+        return $reflectionClass->newInstanceArgs($arguments);
     }
 
     /**
@@ -135,6 +155,17 @@ class Application implements RunnableInterface, ContainerInterface
     {
         if (isset($this->components[$name])) {
             return $this->components[$name];
+        }
+
+        if (isset($this->bingings[$name])) {
+            $factoryClass = $this->bingings[$name]['factory'];
+            $factory = new $factoryClass($this, $this->bingings[$name]['params']);
+            $instance = $factory->createComponent();
+            //$this->conmponents[$name] = $instance;
+            $this->set($name, $instance);
+            $this->set(get_class($instance), $instance);
+
+            return $instance;
         }
 
         throw new \Exception('Can not get service with name' . $name);
@@ -162,9 +193,16 @@ class Application implements RunnableInterface, ContainerInterface
      * @return RouterInterface
      * @throws \Exception
      * @deprecated
+     *
+     * @todo
      */
     public function getRouter()
     {
-        return $this->get('router');
+        return $this->get(RouterInterface::class);
+        /*$factoryClass = $this->bingings[RouterInterface::class]['factory'];
+        $factory = new $factoryClass($this);
+        $router = $factory->createComponent();
+        $this->set(RouterInterface::class, $router);
+        return $router;*/
     }
 }

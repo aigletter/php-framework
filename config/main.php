@@ -3,7 +3,7 @@
 return [
     'app_name' => 'Test framework',
     'components' => [
-        'router' => [
+        \Core\Interfaces\RouterInterface::class => [
             'factory' => \Core\Components\Router\RouterFactory::class,
             /*'factory' => \App\Components\Router\RouterFactory::class,
             'able_path' => ['Auth'  => ['login', 'logout', 'registration'],
@@ -12,11 +12,11 @@ return [
                 'homeController' => ['index']
             ]*/
         ],
-        'cache' => [
+        \Psr\SimpleCache\CacheInterface::class => [
             'factory' => \Core\Components\Cache\CacheFactory::class,
             'filename' => 'data/cache/cache.json'
         ],
-        'test' => [
+        \Core\Components\Test\Test::class => [
             'factory' => \Core\Components\Test\TestFactory::class,
         ]
     ]

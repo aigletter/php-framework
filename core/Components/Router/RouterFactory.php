@@ -11,6 +11,6 @@ class RouterFactory extends FactoryAbstract
 
     protected function createConcrete()
     {
-        return new Router();
+        return new Router($this->container);
     }
 }
